@@ -22,6 +22,14 @@ void loader_cleanup()
   {
     close(fd);
   }
+  if (ehdr != NULL)
+  {
+    free(ehdr);
+  }
+  if (phdr != NULL)
+  {
+    free(phdr);
+  }
 }
 
 /*
@@ -48,6 +56,9 @@ void load_and_run_elf(char **exe)
 
   Elf32_Ehdr *ehdr;
 
+  ehdr = (Elf32_Ehdr *)malloc(sizeof(Elf32_Ehdr));
+
+
   ssize_t read_size = read(fd, ehdr, sizeof(Elf32_Ehdr));
   if (read_size != sizeof(Elf32_Ehdr))
   {
@@ -60,6 +71,9 @@ void load_and_run_elf(char **exe)
   // Iterate through program headers to find the LOAD segment
   for (int i = 0; i < ehdr->e_phnum; ++i)
   {
+
+    phdr = (Elf32_Phdr *)malloc(sizeof(Elf32_Phdr));
+
     // Elf32_Phdr ph;
     ssize_t ph_read_size = read(fd, phdr, sizeof(Elf32_Phdr));
     if (ph_read_size != sizeof(Elf32_Phdr))
@@ -85,13 +99,37 @@ void load_and_run_elf(char **exe)
       if (segment_read_size != phdr->p_filesz)
       {
         perror("Error reading segment content"); // Clean up memory before exiting
+        
+        munmap(segment_addr, phdr->p_memsz);
         close(fd);
         exit(EXIT_FAILURE);
       }
 
-      // Cast to function pointer and call the entry point
+      //set the entry point
+      void (*entry_point)() = (void (*)())(intptr_t)((char*)segment_addr + (ehdr->e_entry - phdr->p_vaddr));
+      /*entry_point = (void (*)())(intptr_t)((char*)segment_addr + (ehdr->e_entry - phdr->p_vaddr));*/
+
+      // Clean up and exit
+      munmap(segment_addr, phdr->p_memsz);
+      loader_cleanup();
+      return;
+    }
+    
+    free(phdr);
+  }
+
+
+  // If we get here, we didn't find a LOAD segment
+  perror("Error: No LOAD segment found");
+  loader_cleanup();
+  exit(EXIT_FAILURE);
+}
+
+/*      // Cast to function pointer and call the entry point
       void (*entry_point)() = (void (*)())(uintptr_t)(segment_addr + (ehdr->e_entry - phdr->p_vaddr));
       entry_point();
+      
+      
 
       // Clean up and exit
       munmap(segment_addr, phdr->p_memsz);
@@ -106,11 +144,13 @@ void load_and_run_elf(char **exe)
     exit(EXIT_FAILURE);
   }
 
-}
-
-int result = _start();
+      int (*_start)() = (int(*)())entry_point;
+  int result = _start();
   printf("User _start return value = %d\n",result);
-// 7. Print the return value from the "_start" method
+
+}*/
+
+
 
 int main(int argc, char** argv)
 {
@@ -120,10 +160,9 @@ int main(int argc, char** argv)
   }
   // 1. carry out necessary checks on the input ELF file
   // 2. passing it to the loader for carrying out the loading/execution
-  load_and_run_elf(argv[1]);
+  load_and_run_elf(argv);
 
   // 3. invoke the cleanup routine inside the loader
   loader_cleanup();
   return 0;
 }
-
