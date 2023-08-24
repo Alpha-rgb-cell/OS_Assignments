@@ -1,25 +1,24 @@
 #include "loader.h"
 #include <elf.h>
 
-// Global variables to hold ELF header, program header, and file descriptor
 Elf32_Ehdr *ehdr;
 Elf32_Phdr *phdr;
 int fd;
 
-// Function to clean up resources
+
 void loader_cleanup() {
     if (fd != -1) {
         close(fd); // Close the file descriptor if it's open
     }
     if (ehdr != NULL) {
-        free(ehdr); // Free allocated memory for ELF header
+        free(ehdr); // free allocated memory for ELF header
     }
     if (phdr != NULL) {
         free(phdr); // Free allocated memory for program header
     }
 }
 
-// Function to load and execute an ELF executable
+// ld and execute an ELF executable
 void load_and_run_elf(char **exe) {
     // Open the ELF file for reading
     fd = open(exe[1], O_RDONLY);
@@ -41,7 +40,7 @@ void load_and_run_elf(char **exe) {
     while (i < ehdr->e_phnum) {
         if (phdr[i].p_type == PT_LOAD) { // Check for PT_LOAD segment
             if (ehdr->e_entry >= phdr[i].p_vaddr && ehdr->e_entry <= phdr[i].p_vaddr + phdr[i].p_filesz) {
-                // Map virtual memory and load segment content
+                // load ELF file segment content and mapping
                 void *virtual_mem = mmap((void *)phdr[i].p_vaddr, phdr[i].p_memsz,
                 PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
                 if (virtual_mem == MAP_FAILED) {
@@ -51,11 +50,11 @@ void load_and_run_elf(char **exe) {
                     exit(EXIT_FAILURE);
                 }
                 
-                // Read segment content from ELF file and load into memory
+                // read segment content from ELF file and ld into mem
                 lseek(fd, phdr[i].p_offset, SEEK_SET);
                 read(fd, virtual_mem, phdr[i].p_filesz);
 
-                // Calculate entry point offset and execute _start function
+                // calculate entry point offset and execute _start function
                 uintptr_t entry_offset = ehdr->e_entry - phdr[i].p_vaddr;
                 char *entry_address = (char *)((uintptr_t)virtual_mem + entry_offset);
                 int (*_start)() = (int (*)())entry_address;
