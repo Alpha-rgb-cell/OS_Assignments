@@ -1,5 +1,12 @@
 #include "loader.h"
 #include <elf.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 Elf32_Ehdr *ehdr;
 Elf32_Phdr *phdr;
@@ -19,7 +26,6 @@ void loader_cleanup() {
 
 void load_and_run_elf(char **exe) {
 
-
 // 1. Load entire binary content into the memory from the ELF file.
 // 2. Iterate through the PHDR table and find the section of PT_LOAD
 //    type that contains the address of the entrypoint method in fib.c 
@@ -28,6 +34,7 @@ void load_and_run_elf(char **exe) {
 // 4. Navigate to the entrypoint address into the segment loaded in the memory in above step
 // 5. Typecast the address to that of function pointer matching "_start" method in fib.c.
 // 6. Call the "_start" method and print the value returned from the "_start"
+    
     fd = open(exe[1], O_RDONLY);
     if (fd == -1) {
         perror("Error opening file.");
@@ -42,9 +49,6 @@ void load_and_run_elf(char **exe) {
     read(fd, phdr, ehdr->e_phentsize * ehdr->e_phnum);
 
     for (int i = 0; i < ehdr->e_phnum; ++i) {
-        printf("Program Header %d: Type = %x, Vaddr = 0x%x, Offset = %x, Filesz = %x, Memsz = %x\n",
-               i, phdr[i].p_type, phdr[i].p_vaddr, phdr[i].p_offset, phdr[i].p_filesz, phdr[i].p_memsz);
-        
         if (phdr[i].p_type == PT_LOAD) {
             if (ehdr->e_entry >= phdr[i].p_vaddr && ehdr->e_entry <= phdr[i].p_vaddr + phdr[i].p_filesz) {
                 void *virtual_mem = mmap((void *)phdr[i].p_vaddr, phdr[i].p_memsz,
@@ -72,7 +76,6 @@ void load_and_run_elf(char **exe) {
         }
     }
 
-   
     loader_cleanup();
     close(fd);
     exit(EXIT_FAILURE);
