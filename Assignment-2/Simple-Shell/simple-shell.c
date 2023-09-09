@@ -7,7 +7,7 @@
 #include <time.h>
 
 #define MAX_INPUT_LENGTH 1024
-#define MAX_HISTORY_SIZE 50
+#define MAX_HISTORY_SIZE 100
 
 // Structure to store command execution details
 struct CommandExecution {
