@@ -7,7 +7,7 @@
 #include <time.h>
 
 #define MAX_INPUT_LENGTH 1024
-#define MAX_HISTORY_SIZE 100
+#define MAX_HISTORY_SIZE 50
 
 // Structure to store command execution details
 struct CommandExecution {
@@ -56,13 +56,12 @@ void launch(char *cmd, struct CommandExecution *history, int *history_count) {
     }
 }
 
-
 int main() {
     char input[MAX_INPUT_LENGTH];
     struct CommandExecution history[MAX_HISTORY_SIZE];
     int history_count = 0;
 
-    printf("SimpleShell> ");
+    printf("SimpleShell>");
 
     while (1) {
         // Read user input
@@ -97,6 +96,15 @@ int main() {
             continue;
         }
 
+        // Check for the cd (change directory) command
+        if (strncmp(input, "cd ", 3) == 0) {
+            char* dir = input + 3; // Extract the directory path
+            if (chdir(dir) != 0) {
+                perror("cd failed");
+            }
+            continue;
+        }
+
         // Store the command in history
         if (history_count < MAX_HISTORY_SIZE) {
             strncpy(history[history_count].cmd, input, sizeof(history[history_count].cmd));
@@ -111,7 +119,7 @@ int main() {
         }
 
         // Display the command prompt
-        printf("SimpleShell> ");
+        printf("\nSimpleShell> ");
     }
 
     return 0;
