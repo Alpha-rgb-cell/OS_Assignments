@@ -61,7 +61,7 @@ int main() {
     struct CommandExecution history[MAX_HISTORY_SIZE];
     int history_count = 0;
 
-    printf("SimpleShell>");
+    printf("SimpleShell> ");
 
     while (1) {
         // Read user input
