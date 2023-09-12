@@ -9,7 +9,6 @@
 #define MAX_INPUT_LENGTH 1024
 #define MAX_HISTORY_SIZE 50
 
-// Structure to store command execution details
 struct CommandExecution {
     char cmd[MAX_INPUT_LENGTH];
     pid_t pid;
@@ -36,7 +35,7 @@ void launch(char *cmd, struct CommandExecution *history, int *history_count) {
         // Parent process
         if (cmd[strlen(cmd) - 1] == '&') {
             // Background process
-            printf("[%d] %s\n", pid, cmd);
+            printf("[%d] %s\\n", pid, cmd);
         } else {
             // Foreground process
             waitpid(pid, NULL, 0);
@@ -56,6 +55,7 @@ void launch(char *cmd, struct CommandExecution *history, int *history_count) {
     }
 }
 
+
 int main() {
     char input[MAX_INPUT_LENGTH];
     struct CommandExecution history[MAX_HISTORY_SIZE];
@@ -63,63 +63,55 @@ int main() {
 
     printf("SimpleShell> ");
 
-    while (1) {
-        // Read user input
-        if (fgets(input, sizeof(input), stdin) == NULL) {
-            break; // Exit on EOF (e.g., Ctrl+D)
-        }
-
-        // Remove trailing newline
+    while (fgets(input, sizeof(input), stdin)) {
         input[strcspn(input, "\n")] = '\0';
 
-        // Check for the exit command
         if (strcmp(input, "exit") == 0 || strcmp(input, "quit") == 0) {
-            // Display command execution details on termination
             printf("Command Execution Details:\n");
-            for (int i = 0; i < history_count; i++) {
+            int i = 0;
+            while (i < history_count) {
                 printf("Command: %s\n", history[i].cmd);
                 printf("PID: %d\n", history[i].pid);
                 printf("Start Time: %s", ctime(&history[i].start_time));
                 printf("End Time: %s", ctime(&history[i].end_time));
                 printf("Duration: %.2f seconds\n", history[i].duration);
+                i++;
             }
             break;
         }
 
-        // Check for the history command
         if (strcmp(input, "history") == 0) {
-            // Display the command history
             printf("Command History:\n");
-            for (int i = 0; i < history_count; i++) {
+            int i = 0;
+            while (i < history_count) {
                 printf("%d: %s\n", i + 1, history[i].cmd);
+                i++;
             }
             continue;
         }
 
-        // Check for the cd (change directory) command
         if (strncmp(input, "cd ", 3) == 0) {
-            char* dir = input + 3; // Extract the directory path
+            char* dir = input + 3;
             if (chdir(dir) != 0) {
                 perror("cd failed");
             }
             continue;
         }
 
-        // Store the command in history
         if (history_count < MAX_HISTORY_SIZE) {
             strncpy(history[history_count].cmd, input, sizeof(history[history_count].cmd));
             launch(input, history, &history_count);
         } else {
-            // Handle history overflow (replace the oldest entry)
-            for (int i = 0; i < MAX_HISTORY_SIZE - 1; i++) {
+            int i = 0;
+            while (i < MAX_HISTORY_SIZE - 1) {
                 history[i] = history[i + 1];
+                i++;
             }
             strncpy(history[MAX_HISTORY_SIZE - 1].cmd, input, sizeof(history[MAX_HISTORY_SIZE - 1].cmd));
             launch(input, history, &history_count);
         }
 
-        // Display the command prompt
-        printf("\nSimpleShell> ");
+        printf("\nSimpleShell> "); 
     }
 
     return 0;
