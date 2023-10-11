@@ -14,9 +14,8 @@ int history_count = 0;
 
 char previous_directory[MAX_COMMAND_LENGTH];
 
-void add_to_history(char* command, pid_t pid, time_t start_time, time_t end_time);
+void add_to_history(char* command);
 void display_history();
-
 void executeCommand(char **args, int pipe_flag, int pipe_read_fd);
 
 int main() {
@@ -30,7 +29,7 @@ int main() {
     while (1) {
         char cwd[1024];
         getcwd(cwd, sizeof(cwd));
-        printf("Simple-Shell:%s$ ", cwd);
+        printf("Simple-Shell:%s$ ", cwd);  // Updated prompt here with the current directory
 
         if (fgets(input, MAX_COMMAND_LENGTH, stdin) == NULL) {
             perror("fgets");
@@ -38,6 +37,10 @@ int main() {
         }
 
         input[strcspn(input, "\n")] = '\0';
+
+    
+
+
 
         if (strcmp(input, "history") == 0) {
             display_history();
@@ -69,7 +72,7 @@ int main() {
             continue;
         }
 
-        add_to_history(input, 0, 0, 0);  // Initialize the command details
+        add_to_history(input);
 
         char *token = strtok(input, "|");
 
@@ -117,7 +120,7 @@ int main() {
     return 0;
 }
 
-void add_to_history(char* command, pid_t pid, time_t start_time, time_t end_time) {
+void add_to_history(char* command) {
     if (history_count < MAX_HISTORY_SIZE) {
         history[history_count++] = strdup(command);
     } else {
@@ -126,15 +129,6 @@ void add_to_history(char* command, pid_t pid, time_t start_time, time_t end_time
             history[i] = history[i+1];
         }
         history[MAX_HISTORY_SIZE - 1] = strdup(command);
-    }
-
-    // Display the PID and other details
-    if (pid != 0) {
-        printf("Command: %s\n", command);
-        printf("PID: %d\n", pid);
-        printf("Start Time: %s", ctime(&start_time));
-        printf("End Time: %s", ctime(&end_time));
-        printf("Duration: %.2f seconds\n", difftime(end_time, start_time));
     }
 }
 
@@ -165,14 +159,10 @@ void executeCommand(char **args, int pipe_flag, int pipe_read_fd) {
         exit(EXIT_FAILURE);
     } else {
         if (!pipe_flag) {
-            time_t start_time, end_time;
-            time(&start_time);
             if (wait(NULL) == -1) {
                 perror("wait");
                 exit(EXIT_FAILURE);
             }
-            time(&end_time);
-            add_to_history(args[0], pid, start_time, end_time);
         }
     }
 }
