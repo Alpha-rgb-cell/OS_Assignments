@@ -9,17 +9,74 @@
 #define MAX_ARGUMENTS 100
 #define MAX_HISTORY_SIZE 10
 
-char* history[MAX_HISTORY_SIZE];
+struct CommandExecution {
+    char cmd[MAX_COMMAND_LENGTH];
+    pid_t pid;
+};
+
+struct CommandExecution history[MAX_HISTORY_SIZE];
 int history_count = 0;
 
 char previous_directory[MAX_COMMAND_LENGTH];
 
-void add_to_history(char* command);
-void display_history();
-void executeCommand(char **args, int pipe_flag, int pipe_read_fd);
+void add_to_history(char* command, pid_t pid) {
+    if (history_count < MAX_HISTORY_SIZE) {
+        strncpy(history[history_count].cmd, command, sizeof(history[history_count].cmd));
+        history[history_count].pid = pid;
+        history_count++;
+    } else {
+        for (int i = 0; i < MAX_HISTORY_SIZE - 1; i++) {
+            history[i] = history[i+1];
+        }
+        strncpy(history[MAX_HISTORY_SIZE - 1].cmd, command, sizeof(history[MAX_HISTORY_SIZE - 1].cmd));
+        history[MAX_HISTORY_SIZE - 1].pid = pid;
+    }
+}
+
+void display_history() {
+    for (int i = 0; i < history_count; i++) {
+        if (strcmp(history[i].cmd, "") != 0) { // Check if the command is not empty
+            printf("%d: %s\n", i + 1, history[i].cmd);
+        }
+    }
+}
+
+void executeCommand(char **args, int pipe_flag, int pipe_read_fd) {
+    pid_t pid = fork();
+
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid == 0) {
+        // Child process
+
+        if (pipe_flag) {
+            if (dup2(pipe_read_fd, STDIN_FILENO) == -1) {
+                perror("dup2");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        execvp(args[0], args);
+        perror(args[0]);
+        exit(EXIT_FAILURE);
+    } else {
+        // Parent process
+        if (!pipe_flag) {
+            int status;
+            if (waitpid(pid, &status, 0) == -1) {
+                perror("waitpid");
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            add_to_history(args[0], pid);
+        }
+    }
+}
 
 int main() {
-
     char input[MAX_COMMAND_LENGTH];
     char *args[MAX_ARGUMENTS];
     int pipe_flag = 0;
@@ -29,7 +86,7 @@ int main() {
     while (1) {
         char cwd[1024];
         getcwd(cwd, sizeof(cwd));
-        printf("Simple-Shell:%s$ ", cwd);  // Updated prompt here with the current directory
+        printf("Simple-Shell~ %s $ ", cwd);
 
         if (fgets(input, MAX_COMMAND_LENGTH, stdin) == NULL) {
             perror("fgets");
@@ -37,10 +94,6 @@ int main() {
         }
 
         input[strcspn(input, "\n")] = '\0';
-
-    
-
-
 
         if (strcmp(input, "history") == 0) {
             display_history();
@@ -72,7 +125,47 @@ int main() {
             continue;
         }
 
-        add_to_history(input);
+        if (strcmp(input, "wc -l") == 0) {
+            FILE *pipe_fp;
+            char buffer[1024];
+
+            if ((pipe_fp = popen("wc -l", "r")) == NULL) {
+                perror("popen");
+                exit(EXIT_FAILURE);
+            }
+
+            while (fgets(buffer, sizeof(buffer), pipe_fp) != NULL) {
+                printf("%s", buffer);
+            }
+
+            if (pclose(pipe_fp) == -1) {
+                perror("pclose");
+                exit(EXIT_FAILURE);
+            }
+            continue;
+        }
+
+        if (strcmp(input, "wc -c") == 0) {
+            FILE *pipe_fp;
+            char buffer[1024];
+
+            if ((pipe_fp = popen("wc -c", "r")) == NULL) {
+                perror("popen");
+                exit(EXIT_FAILURE);
+            }
+
+            while (fgets(buffer, sizeof(buffer), pipe_fp) != NULL) {
+                printf("%s", buffer);
+            }
+
+            if (pclose(pipe_fp) == -1) {
+                perror("pclose");
+                exit(EXIT_FAILURE);
+            }
+            continue;
+        }
+
+        add_to_history(input, getpid());
 
         char *token = strtok(input, "|");
 
@@ -91,12 +184,14 @@ int main() {
                 }
                 args[i] = NULL;
 
-                if (fork() == 0) {
+                pid_t child_pid = fork();
+                if (child_pid == 0) {
                     close(pipe_fds[0]);
                     dup2(pipe_read_fd, STDIN_FILENO);
                     dup2(pipe_fds[1], STDOUT_FILENO);
                     close(pipe_fds[1]);
                     executeCommand(args, 1, pipe_read_fd);
+                    exit(EXIT_SUCCESS);
                 } else {
                     close(pipe_read_fd);
                     close(pipe_fds[1]);
@@ -105,6 +200,7 @@ int main() {
                         exit(EXIT_FAILURE);
                     }
                     pipe_read_fd = pipe_fds[0];
+                    add_to_history(args[0], child_pid);
                 }
                 pipe_flag = 0;
             } else {
@@ -118,51 +214,4 @@ int main() {
     }
 
     return 0;
-}
-
-void add_to_history(char* command) {
-    if (history_count < MAX_HISTORY_SIZE) {
-        history[history_count++] = strdup(command);
-    } else {
-        free(history[0]);
-        for (int i = 0; i < MAX_HISTORY_SIZE - 1; i++) {
-            history[i] = history[i+1];
-        }
-        history[MAX_HISTORY_SIZE - 1] = strdup(command);
-    }
-}
-
-void display_history() {
-    for (int i = 0; i < history_count; i++) {
-        printf("%d. %s\n", i+1, history[i]);
-    }
-}
-
-void executeCommand(char **args, int pipe_flag, int pipe_read_fd) {
-    pid_t pid = fork();
-
-    if (pid == -1) {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }
-
-    if (pid == 0) {
-        if (pipe_flag) {
-            if (dup2(pipe_read_fd, STDIN_FILENO) == -1) {
-                perror("dup2");
-                exit(EXIT_FAILURE);
-            }
-        }
-
-        execvp(args[0], args);
-        perror(args[0]);
-        exit(EXIT_FAILURE);
-    } else {
-        if (!pipe_flag) {
-            if (wait(NULL) == -1) {
-                perror("wait");
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
 }
