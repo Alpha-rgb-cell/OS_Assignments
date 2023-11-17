@@ -30,11 +30,6 @@ void demonstration(std::function<void()> && lambda) {
 
 
 void parallel_for(int low, int high, std::function<void(int)> &&lambda, int numThreads) {
-    // Your implementation for parallelizing for loop goes here
-    // Create numThreads Pthreads and distribute the work
-    // Execute the lambda in parallel
-    // Remember to handle synchronization if needed
-    // Calculate execution time and print if required
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -74,11 +69,6 @@ void parallel_for(int low, int high, std::function<void(int)> &&lambda, int numT
 
 
 void parallel_for(int low1, int high1, int low2, int high2, std::function<void(int, int)> &&lambda, int numThreads) {
-    // Your implementation for parallelizing 2D for loops goes here
-    // Create numThreads Pthreads and distribute the work for 2D loops
-    // Execute the lambda in parallel
-    // Handle synchronization if necessary
-    // Calculate execution time and print if required
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -118,8 +108,11 @@ void parallel_for(int low1, int high1, int low2, int high2, std::function<void(i
               << " milliseconds" << std::endl;
 }
 
+
+
 int main(int argc, char **argv) {
-  /* 
+
+    /* 
    * Declaration of a sample C++ lambda function
    * that captures variable 'x' by value and 'y'
    * by reference. Global variables are by default
@@ -127,25 +120,30 @@ int main(int argc, char **argv) {
    * in the capture list. Only local variables must be 
    * explicity captured if they are used inside lambda.
    */
-  int x=5,y=1;
-  // Declaring a lambda expression that accepts void type parameter
-  auto /name/ lambda1 = /capture list/[/by value/ x, /by reference/ &y](void) {
-    /* Any changes to 'x' will throw compilation error as x is captured by value */
-    y = 5;
-    std::cout<<"====== Welcome to Assignment-"<<y<<" of the CSE231(A) ======\n";
-    /* you can have any number of statements inside this lambda body */
-  };
-  // Executing the lambda function
-  demonstration(lambda1); // the value of x is still 5, but the value of y is now 5
 
-  int rc = user_main(argc, argv);
- 
-  auto /name/ lambda2 = [/nothing captured/]() {
-    std::cout<<"====== Hope you enjoyed CSE231(A) ======\n";
-    /* you can have any number of statements inside this lambda body */
-  };
-  demonstration(lambda2);
-  return rc;
+    int x = 5, y = 1;
+  
+  // Declaring a lambda expression that accepts void type parameter
+
+    auto lambda1 = [x, &y](void) {
+    /* Any changes to 'x' will throw compilation error as x is captured by value */
+        y = 5;
+        std::cout << "====== Welcome to Assignment-" << y << " of the CSE231(A) ======\n";
+        /* you can have any number of statements inside this lambda body */
+    };
+  // Executing the lambda function
+    demonstration(lambda1); // the value of x is still 5, but the value of y is now 5
+
+    int rc = user_main(argc, argv);
+
+    auto lambda2 = []() {
+        std::cout << "====== Hope you enjoyed CSE231(A) ======\n";
+        /* you can have any number of statements inside this lambda body */
+    };
+
+    demonstration(lambda2);
+    return rc;
 }
+
 
 #define main user_main
