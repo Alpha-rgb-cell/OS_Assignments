@@ -54,11 +54,17 @@ void parallel_for(int low, int high, std::function<void(int)> &&lambda, int numT
             }
         };
 
-        pthread_create(&threads[i], nullptr, parallel_execution, &funcs[i]);
+        if (pthread_create(&threads[i], nullptr, parallel_execution, &funcs[i]) != 0) {
+            std::cerr << "Error: Thread creation failed!" << std::endl;
+            exit(EXIT_FAILURE);
+      }
     }
 
     for (int i = 0; i < numThreads; ++i) {
-        pthread_join(threads[i], nullptr);
+        if (pthread_join(threads[i], nullptr) != 0) {
+            std::cerr << "Error: Thread join failed!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
     }
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -73,7 +79,7 @@ void parallel_for(int low1, int high1, int low2, int high2, std::function<void(i
     // Execute the lambda in parallel
     // Handle synchronization if necessary
     // Calculate execution time and print if required
-    
+
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     pthread_t threads[numThreads];
@@ -94,13 +100,19 @@ void parallel_for(int low1, int high1, int low2, int high2, std::function<void(i
             }
         };
 
-        pthread_create(&threads[i], nullptr, parallel_execution, &funcs[i]);
+        if (pthread_create(&threads[i], nullptr, parallel_execution, &funcs[i]) != 0) {
+            std::cerr << "Error: Thread creation failed!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
     }
 
     for (int i = 0; i < numThreads; ++i) {
-        pthread_join(threads[i], nullptr);
+        if (pthread_join(threads[i], nullptr) != 0) {
+            std::cerr << "Error: Thread join failed!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
     }
-
+    
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Execution Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
               << " milliseconds" << std::endl;
@@ -117,7 +129,7 @@ int main(int argc, char **argv) {
    */
   int x=5,y=1;
   // Declaring a lambda expression that accepts void type parameter
-  auto /*name*/ lambda1 = /*capture list*/[/*by value*/ x, /*by reference*/ &y](void) {
+  auto /name/ lambda1 = /capture list/[/by value/ x, /by reference/ &y](void) {
     /* Any changes to 'x' will throw compilation error as x is captured by value */
     y = 5;
     std::cout<<"====== Welcome to Assignment-"<<y<<" of the CSE231(A) ======\n";
@@ -128,7 +140,7 @@ int main(int argc, char **argv) {
 
   int rc = user_main(argc, argv);
  
-  auto /*name*/ lambda2 = [/*nothing captured*/]() {
+  auto /name/ lambda2 = [/nothing captured/]() {
     std::cout<<"====== Hope you enjoyed CSE231(A) ======\n";
     /* you can have any number of statements inside this lambda body */
   };
@@ -137,5 +149,3 @@ int main(int argc, char **argv) {
 }
 
 #define main user_main
-
-
